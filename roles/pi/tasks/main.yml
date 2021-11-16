@@ -1,0 +1,177 @@
+---
+
+- name: "Setting hostname to 'pihole'"
+  hostname:
+    name: pihole
+  tags: admin
+
+- name: 'Disable WIFI and Bluetooth'
+  copy: src=./files/raspi-blacklist.conf dest=/etc/modprobe.d/raspi-blacklist.conf mode=0600
+  tags: admin
+
+- name: 'Update package manager cache'
+  ansible.builtin.package:
+    update_cache: yes
+    upgrade: safe
+  tags: admin
+
+- name: Install admin tools (vim, htop, ntop, nmap)
+  ansible.builtin.package:
+    package: "{{ item }}"
+    state: present
+  with_items:
+    - python-apt
+    - python-pip
+    - vim
+    - htop
+    - ntop
+    - nmap
+    - atop
+    - php-cli
+  tags: admin
+
+- name: "Create dnscrypt-proxy user (nobody)"
+  ansible.builtin.user:
+    name: nobody
+    group: nobody
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: no
+    password: '!' # disabled user!
+
+- name: "Create dnscrypt directory"
+  become: true
+  file:
+    name="/opt/dnscrypt-proxy"
+    state=directory
+    owner="nobody"
+    group="nobody"
+  tags: dnscrypt-proxy
+
+- name: "Copy dnscrypt files"
+  synchronize:
+    src: ./files/dnscrypt-proxy
+    dest: /opt/dnscrypt-proxy
+  tags: dnscrypt-proxy
+
+- name: "Set dnscrypt binary file permissions"
+  ansible.builtin.file:
+    path: /opt/dnscrypt-proxy/dnscrypt-proxy
+    owner: nobody
+    group: nobody
+    mode: '0700'
+  tags: dnscrypt-proxy
+
+- name: "Install and start dnscrypt service (listening on 127.0.0.1:5300)"
+  ansible.builtin.shell: |
+    /opt/dnscrypt-proxy/dnscrypt-proxy -service install
+    /opt/dnscrypt-proxy/dnscrypt-proxy -service start
+  tags: dnscrypt-proxy
+
+- name: "Download Pi-Hole installer"
+  get_url:
+      url: https://install.pi-hole.net
+      dest: ~/install-pihole.sh
+      mode: 0740
+  tags: pihole
+
+- name: Create pihole configuration directory
+  become: True
+  file:
+    name="{{ fspath_pihole_config }}"
+    state=directory
+    owner="{{ user_pihole }}"
+    group="{{ group_pihole }}"
+    mode=0755
+  tags: pihole
+
+- name: Create pihole configuration
+  become: True
+  template:
+    src="setupVars.conf.j2"
+    dest="{{ fspath_pihole_config }}/setupVars.conf"
+    owner=root
+    group=root
+    mode=0644
+  tags: pihole
+
+- name: Set static IP configuration
+  become: True
+  template:
+    src="etc_network_interfaces.j2"
+    dest="/etc/network/interfaces"
+    owner=root
+    group=root
+    mode=0644
+  tags: pihole
+
+- name: Set default DNS
+  become: True
+  template:
+    src="etc_resolf.conf.j2"
+    dest="/etc/resolv.conf"
+    owner=root
+    group=root
+    mode=0644
+  tags: admin
+
+- name: Install Pi-Hole
+  shell: "~/install-pihole.sh --unattended"
+  register: dbg_install_pihole
+  tags: pihole
+
+- name: Set PiHole to update every week
+  become: True
+  ansible.builtin.cron:
+    name: "Update pihole"
+    day: "*/7"
+    job: "/usr/local/bin/pihole -up >/home/pi/piholeUpdate.log 2>&"
+
+- name: 'Reboot'
+  shell: sleep 2 && reboot
+  async: 1
+  poll: 0
+  ignore_errors: true
+  tags: pihole
+
+- name: "Wait for Raspberry PI to come back"
+  local_action: wait_for host={{ ansible_host }} port=22 state=started delay=10
+  become: false
+
+- name: "Add whitelists to pihole"
+  ansible.builtin.shell: |
+    cd /opt
+    git clone https://github.com/anudeepND/whitelist.git
+    sudo python3 whitelist/scripts/whitelist.py
+
+- name: "Update Whitelists every week"
+  become: True
+  ansible.builtin.cron:
+    name: "Update pihole"
+    day: "*/7"
+    job: "python3 /opt/whitelist/scripts/whitelist.py >/dev/null 2>&"
+
+- name: "Install automated pihole blacklist updater"
+  ansible.builtin.shell: |
+    wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
+  
+- name: "Copy pihole updater config file"
+  become: True
+  template:
+    src="./files/pihole-updatelists.conf"
+    dest="/etc/pihole-updatelists.conf"
+    owner=root
+    group=root
+    mode=0644
+
+- name: "Run the updater"
+  ansible.builtin.shell: |
+    sudo pihole-updatelists --update
+
+- name: Update Pihole blocking list every night
+  become: true
+  ansible.builtin.cron:
+    name: "Update pihole adblocklist"
+    minute: 0
+    hour: "2"
+    job: "sudo /usr/local/sbin/pihole-updatelists --update >/dev/null 2>&"
