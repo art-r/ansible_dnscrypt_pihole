@@ -3,3 +3,9 @@
 
 # vscode
 .vscode
+
+# hosts file
+hosts
+
+# dnscrypt binary
+dnscrypt-proxy
