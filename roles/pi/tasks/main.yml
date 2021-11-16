@@ -30,6 +30,59 @@
     - php-cli
   tags: admin
 
+
+- name: Install ufw
+  ansible.builtin.package:
+    package: "ufw"
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Configure ufw - deny all incoming
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Configure ufw - deny routed traffic
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: routed
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Configure ufw - limit ssh
+  community.general.ufw:
+    rule: limit
+    port: 22
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Start ufw
+  ansible.builtin.systemd:
+    state: started
+    name: ufw
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Enable ufw at reboot
+  ansible.builtin.systemd:
+    state: enabled
+    name: ufw
+  when: ansible_facts['os_family'] == "Debian"
+
+
+- name: Install firwalld
+  ansible.builtin.package:
+    package: "firewalld"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Enable firewalld at reboot
+  ansible.builtin.systemd:
+    state: enabled
+    name: firewalld
+  when: ansible_facts['os_family'] == "RedHat"
+  
+
 - name: "Create dnscrypt-proxy user (nobody)"
   ansible.builtin.user:
     name: nobody
