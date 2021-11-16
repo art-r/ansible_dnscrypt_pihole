@@ -5,88 +5,120 @@
     name: pihole
   tags: admin
 
+- name: 'Reboot'
+  shell: sleep 2 && reboot
+  async: 1
+  poll: 0
+  ignore_errors: true
+  tags: pihole
+  when: ansible_facts['nodename'] != "pihole"
+
+- name: "Wait for Raspberry PI to come back"
+  wait_for_connection:
+    delay: 20
+    timeout: 240
+  when: ansible_facts['nodename'] != "pihole"
+
 - name: 'Disable WIFI and Bluetooth'
   copy: src=./files/raspi-blacklist.conf dest=/etc/modprobe.d/raspi-blacklist.conf mode=0600
   tags: admin
 
-- name: 'Update package manager cache'
-  ansible.builtin.package:
+- name: Upgrade all packages (debian)
+  apt:
+    name: "*"
+    state: latest
     update_cache: yes
-    upgrade: safe
-  tags: admin
+    cache_valid_time: 86400
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Upgrade all packages (redhat)
+  dnf:
+    name: "*"
+    state: latest
+  when: ansible_facts['os_family'] == "RedHat"
+
 
 - name: Install admin tools (vim, htop, ntop, nmap)
   ansible.builtin.package:
     package: "{{ item }}"
     state: present
   with_items:
-    - python-apt
-    - python-pip
     - vim
     - htop
-    - ntop
     - nmap
     - atop
     - php-cli
+    - php-curl
   tags: admin
 
 
-- name: Install ufw
+- name: Install ufw (ony debian)
   ansible.builtin.package:
     package: "ufw"
     state: present
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - deny all incoming
+- name: Configure ufw - deny all incoming (ony debian)
   community.general.ufw:
     state: enabled
     policy: deny
     direction: incoming
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - deny routed traffic
+- name: Configure ufw - deny routed traffic (ony debian)
   community.general.ufw:
     state: enabled
     policy: deny
     direction: routed
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - limit ssh
+- name: Configure ufw - limit ssh (ony debian)
   community.general.ufw:
     rule: limit
     port: 22
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Start ufw
+- name: Configure ufw - allow dns requests (ony debian)
+  community.general.ufw:
+    rule: limit
+    port: 53
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Start ufw (ony debian)
   ansible.builtin.systemd:
     state: started
     name: ufw
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Enable ufw at reboot
+- name: Enable ufw at reboot (ony debian)
   ansible.builtin.systemd:
-    state: enabled
+    enabled: true
     name: ufw
   when: ansible_facts['os_family'] == "Debian"
 
 
-- name: Install firwalld
+- name: Install firwalld (only redhat)
   ansible.builtin.package:
     package: "firewalld"
     state: present
   when: ansible_facts['os_family'] == "RedHat"
 
-- name: Enable firewalld at reboot
+- name: Allow dns requests (only redhat)
+  ansible.posix.firewalld:
+  port: 53/udp
+    permanent: yes
+    state: enabled
+
+- name: Enable firewalld at reboot (only redhat)
   ansible.builtin.systemd:
     state: enabled
     name: firewalld
   when: ansible_facts['os_family'] == "RedHat"
-  
+
 
 - name: "Create dnscrypt-proxy user (nobody)"
   ansible.builtin.user:
     name: nobody
-    group: nobody
     shell: /usr/sbin/nologin
     home: /nonexistent
     create_home: no
@@ -98,27 +130,26 @@
     name="/opt/dnscrypt-proxy"
     state=directory
     owner="nobody"
-    group="nobody"
   tags: dnscrypt-proxy
 
 - name: "Copy dnscrypt files"
   synchronize:
     src: ./files/dnscrypt-proxy
-    dest: /opt/dnscrypt-proxy
+    dest: /opt
   tags: dnscrypt-proxy
 
 - name: "Set dnscrypt binary file permissions"
-  ansible.builtin.file:
-    path: /opt/dnscrypt-proxy/dnscrypt-proxy
-    owner: nobody
-    group: nobody
-    mode: '0700'
+  ansible.builtin.shell: |
+    sudo chown -R nobody:staff /opt/dnscrypt-proxy
+    sudo chmod +x /opt/dnscrypt-proxy/dnscrypt-proxy
+
   tags: dnscrypt-proxy
 
 - name: "Install and start dnscrypt service (listening on 127.0.0.1:5300)"
+  become: true
   ansible.builtin.shell: |
-    /opt/dnscrypt-proxy/dnscrypt-proxy -service install
-    /opt/dnscrypt-proxy/dnscrypt-proxy -service start
+    sudo /opt/dnscrypt-proxy/dnscrypt-proxy -service install
+    sudo /opt/dnscrypt-proxy/dnscrypt-proxy -service start
   tags: dnscrypt-proxy
 
 - name: "Download Pi-Hole installer"
@@ -134,7 +165,6 @@
     name="{{ fspath_pihole_config }}"
     state=directory
     owner="{{ user_pihole }}"
-    group="{{ group_pihole }}"
     mode=0755
   tags: pihole
 
@@ -180,16 +210,17 @@
     day: "*/7"
     job: "/usr/local/bin/pihole -up >/home/pi/piholeUpdate.log 2>&"
 
-- name: 'Reboot'
+- name: 'Reboot after pihole installation'
   shell: sleep 2 && reboot
   async: 1
   poll: 0
   ignore_errors: true
   tags: pihole
 
-- name: "Wait for Raspberry PI to come back"
-  local_action: wait_for host={{ ansible_host }} port=22 state=started delay=10
-  become: false
+- name: "Wait for Raspberry PI to come back after full installation"
+  wait_for_connection:
+    delay: 20
+    timeout: 240
 
 - name: "Add whitelists to pihole"
   ansible.builtin.shell: |
@@ -219,7 +250,7 @@
 
 - name: "Run the updater"
   ansible.builtin.shell: |
-    sudo pihole-updatelists --update
+    sudo pihole-updatelists
 
 - name: Update Pihole blocking list every night
   become: true
@@ -227,4 +258,11 @@
     name: "Update pihole adblocklist"
     minute: 0
     hour: "2"
-    job: "sudo /usr/local/sbin/pihole-updatelists --update >/dev/null 2>&"
+    job: "sudo /usr/local/sbin/pihole-updatelists >/dev/null 2>&"
+
+- name: Update the Pihole blocking list script every week
+  become: true
+  ansible.builtin.cron:
+    name: "Update pihole adblocklist"
+    day: "*/7"
+    job: "sudo /usr/local/sbin/pihole-updatelists --update > /home/pi/piholeAdListUpdater.log 2>&"

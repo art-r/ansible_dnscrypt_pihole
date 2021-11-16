@@ -1,8 +1,8 @@
 ansible_connection: ssh
 ansible_ssh_user: pi
 
-user_pihole: "pihole"
-group_pihole: "pihole"
+user_pihole: "pi"
+group_pihole: "pi"
 
 fspath_pihole: "/opt/pihole"
 fspath_pihole_config: "/etc/pihole"
@@ -16,4 +16,4 @@ ipv4_address: "{{ hostvars[inventory_hostname]['ansible_' + network_interface]['
 ipv6: True
 ipv6_address: "{{ hostvars[inventory_hostname]['ansible_' + network_interface]['ipv6'][0]['address'] }}"
 dns_servers:
-  - "127.0.0.1:5300"
+  - "127.0.0.1#5300"
