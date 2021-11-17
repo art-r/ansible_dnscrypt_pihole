@@ -1,0 +1,21 @@
+# set up nginx for joplin server & etesync
+
+- name: Install nginx
+  ansible.builtin.package:
+    package: "{{ item }}"
+    state: present
+    with_items:
+    - nginx
+    - software-properties-common
+# only for debian
+
+
+# copy nginx config files for etesync
+
+# copy nginx config files for joplin
+
+
+# install certbot & run it
+
+
+# open firewall port 443
