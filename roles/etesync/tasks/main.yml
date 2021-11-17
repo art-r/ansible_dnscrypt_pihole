@@ -1,0 +1,47 @@
+# Set up etesync
+
+- name: Install python and pip
+  ansible.builtin.package:
+    package: "{{ item }}"
+    state: present
+  with_items:
+    - python
+    - python3-pip
+    - postgresql
+    - postgresql-contrib
+
+- name: Copy etesync files
+  synchronize:
+    src: ./files/etesync
+    dest: /opt
+
+- name: Install pip requirements for etesync
+    pip:
+    requirements: /opt/etesync/requirements.txt
+
+# set up postgresql
+- name: Create postgresql database for etesync
+    community.postgresql.postgresql_db:
+    name: etesync
+
+- name: Create postgresql user for etesync
+  community.postgresql.postgresql_user:
+    db: etesync
+    name: etesync_db_user
+    password: {{ etesync_db_user_password }}
+
+
+- name: Get latest etesync files from github
+    git:
+    repo: 'https://github.com/etesync/server.git'
+    dest: /opt/etebase
+
+# copy etesync config files from /opt/etesync to /opt/etebase
+
+- name: set up djano
+    ansible.builtin.shell: |
+    ./opt/etebase/manage.py migrate
+
+# copy etebase_server.service file from /opt/etesync to service dir
+
+# set up systemctl to start & enable the etebase_server.service
