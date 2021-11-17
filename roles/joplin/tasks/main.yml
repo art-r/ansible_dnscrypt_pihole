@@ -1,0 +1,16 @@
+# set up joplin server with the included database
+
+# set up apt to have access to docker repo
+- name: Install docker
+  ansible.builtin.package:
+    package: "{{ item }}"
+    state: present
+  with_items:
+    - X
+
+
+# copy config files & docker files
+
+# run docker compose
+
+# add crontab entry (run docker compose up after reboot)
