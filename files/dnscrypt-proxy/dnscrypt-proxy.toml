@@ -29,7 +29,7 @@
 ##
 ## Remove the leading # first to enable this; lines starting with # are ignored.
 
-server_names = ['quad9-dnscrypt-ip4-filter-pri']
+server_names = ['{{ dnscrypt_dns_resolver }}']
 
 
 ## List of local addresses and ports to listen to. Can be IPv4 and/or IPv6.
