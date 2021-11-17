@@ -208,7 +208,7 @@
   ansible.builtin.cron:
     name: "Update pihole"
     day: "*/7"
-    job: "/usr/local/bin/pihole -up >/home/pi/piholeUpdate.log 2>&"
+    job: "/usr/local/bin/pihole -up >>/home/{{ user_pihole }}/piholeUpdate.log 2>>&1"
 
 - name: 'Reboot after pihole installation'
   shell: sleep 2 && reboot
@@ -231,9 +231,9 @@
 - name: "Update Whitelists every week"
   become: True
   ansible.builtin.cron:
-    name: "Update pihole"
+    name: "Update pihole whitelists"
     day: "*/7"
-    job: "python3 /opt/whitelist/scripts/whitelist.py >/dev/null 2>&"
+    job: "python3 /opt/whitelist/scripts/whitelist.py >/dev/null 2>&1"
 
 - name: "Install automated pihole blacklist updater"
   ansible.builtin.shell: |
@@ -255,14 +255,14 @@
 - name: Update Pihole blocking list every night
   become: true
   ansible.builtin.cron:
-    name: "Update pihole adblocklist"
+    name: "Update pihole adblocklists"
     minute: 0
     hour: "2"
-    job: "sudo /usr/local/sbin/pihole-updatelists >/dev/null 2>&"
+    job: "/usr/local/sbin/pihole-updatelists >/dev/null 2>&1"
 
 - name: Update the Pihole blocking list script every week
   become: true
   ansible.builtin.cron:
-    name: "Update pihole adblocklist"
+    name: "Update pihole adblocklist updater"
     day: "*/7"
-    job: "sudo /usr/local/sbin/pihole-updatelists --update > /home/pi/piholeAdListUpdater.log 2>&"
+    job: "/usr/local/sbin/pihole-updatelists --update >> /home/{{ user_pihole }}/piholeAdListUpdater.log 2>>&1"
