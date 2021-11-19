@@ -5,20 +5,6 @@
     name: pihole
   tags: admin
 
-- name: 'Reboot'
-  shell: sleep 2 && reboot
-  async: 1
-  poll: 0
-  ignore_errors: true
-  tags: pihole
-  when: ansible_facts['nodename'] != "pihole"
-
-- name: "Wait for Raspberry PI to come back"
-  wait_for_connection:
-    delay: 20
-    timeout: 240
-  when: ansible_facts['nodename'] != "pihole"
-
 - name: 'Disable WIFI and Bluetooth'
   copy: src=./files/raspi-blacklist.conf dest=/etc/modprobe.d/raspi-blacklist.conf mode=0600
   tags: admin
@@ -38,7 +24,7 @@
   when: ansible_facts['os_family'] == "RedHat"
 
 
-- name: Install admin tools (vim, htop, ntop, nmap)
+- name: Install admin tools (vim, htop, ntop, nmap, atop, php tools)
   ansible.builtin.package:
     package: "{{ item }}"
     state: present
@@ -105,9 +91,10 @@
 
 - name: Allow dns requests (only redhat)
   ansible.posix.firewalld:
-  port: 53/udp
+    port: "53/udp"
     permanent: yes
     state: enabled
+  when: ansible_facts['os_family'] == "RedHat"
 
 - name: Enable firewalld at reboot (only redhat)
   ansible.builtin.systemd:
