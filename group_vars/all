@@ -17,5 +17,3 @@ ipv6: True
 ipv6_address: "{{ hostvars[inventory_hostname]['ansible_' + network_interface]['ipv6'][0]['address'] }}"
 dns_servers:
   - "127.0.0.1#5300"
-
-dnscrypt_dns_resolver: quad9-doh-ip4-port443-filter-pri
