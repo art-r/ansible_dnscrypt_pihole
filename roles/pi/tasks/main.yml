@@ -23,7 +23,6 @@
     state: latest
   when: ansible_facts['os_family'] == "RedHat"
 
-
 - name: Install admin tools (vim, htop, ntop, nmap, atop, php tools)
   ansible.builtin.package:
     package: "{{ item }}"
@@ -38,45 +37,45 @@
   tags: admin
 
 
-- name: Install ufw (ony debian)
+- name: Install ufw (only debian)
   ansible.builtin.package:
     package: "ufw"
     state: present
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - deny all incoming (ony debian)
+- name: Configure ufw - deny all incoming (only debian)
   community.general.ufw:
     state: enabled
     policy: deny
     direction: incoming
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - deny routed traffic (ony debian)
+- name: Configure ufw - deny routed traffic (only debian)
   community.general.ufw:
     state: enabled
     policy: deny
     direction: routed
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - limit ssh (ony debian)
+- name: Configure ufw - limit ssh (only debian)
   community.general.ufw:
     rule: limit
     port: 22
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Configure ufw - allow dns requests (ony debian)
+- name: Configure ufw - allow dns requests (only debian)
   community.general.ufw:
     rule: allow
     port: 53
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Start ufw (ony debian)
+- name: Start ufw (only debian)
   ansible.builtin.systemd:
     state: started
     name: ufw
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Enable ufw at reboot (ony debian)
+- name: Enable ufw at reboot (only debian)
   ansible.builtin.systemd:
     enabled: true
     name: ufw
@@ -215,7 +214,7 @@
 - name: "Install automated pihole blacklist updater"
   ansible.builtin.shell: |
     wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
-  
+
 - name: "Copy pihole updater config file"
   become: True
   template:
