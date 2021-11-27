@@ -20,9 +20,10 @@ Automated installation of:
 5. Replace the file `files/dnscrypt-proxy/dnscrypt-proxy` with the according binary for your target system from [here](https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest)
 > You will download a zip archive from that link. Unzip it and **only** copy the file named `dnscrypt-proxy` to the `files/dnscrypt-proxy` directory. **Do not rename it!**
 6. Make sure that your target system(s) are reachable via ssh from your local computer and that you can login to them with your local ssh key (as explained [here](https://serverpilot.io/docs/how-to-use-ssh-public-key-authentication/)) or else modify the ansible-playbook as explained [here](https://docs.ansible.com/ansible/latest/user_guide/connection_details.html#) (**not recommended as this is less secure**)
+> Note that the remote user has to be able to execute commands as root (=> be able to use sudo!)
 7. Now run the playbook with the command:
 ```bash
-ansible-playbook -i hosts playbook.yml
+ansible-playbook -i hosts playbook.yml -u {name of remote user that ansible should use}
 ```
 8. After the playbook has finished executing all tasks you should be able to connect to your target system(s) via ssh. To access the pihole web interface make it temporarily available on your local computer via the following command:
 > For security reasons the target machine will only have port 53 (dns) and port 22 (ssh) open by default - you will have to modify this manually on the machine if for example you want to always be able to access the pihole web interface or if you want to use the target machine for other purposes as well (e.g. use it as a DHCP server etc.)
