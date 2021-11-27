@@ -5,6 +5,6 @@
   hosts: servers
   roles:
     - pi
-  remote_user: pi
+  remote_user: {{ ansible_ssh_user }}
   become: true
   gather_facts: yes

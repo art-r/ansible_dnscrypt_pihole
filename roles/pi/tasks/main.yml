@@ -150,7 +150,7 @@
   file:
     name="{{ fspath_pihole_config }}"
     state=directory
-    owner="{{ user_pihole }}"
+    owner="{{ ansible_ssh_user }}"
     mode=0755
   tags: pihole
 
@@ -184,7 +184,7 @@
   ansible.builtin.cron:
     name: "Update pihole"
     day: "*/7"
-    job: "/usr/local/bin/pihole -up >>/home/{{ user_pihole }}/piholeUpdate.log 2>>&1"
+    job: "/usr/local/bin/pihole -up >>/home/{{ ansible_ssh_user }}/piholeUpdate.log 2>>&1"
 
 - name: 'Reboot after pihole installation'
   shell: sleep 2 && reboot
@@ -241,4 +241,4 @@
   ansible.builtin.cron:
     name: "Update pihole adblocklist updater"
     day: "*/7"
-    job: "/usr/local/sbin/pihole-updatelists --update >> /home/{{ user_pihole }}/piholeAdListUpdater.log 2>>&1"
+    job: "/usr/local/sbin/pihole-updatelists --update >> /home/{{ ansible_ssh_user }}/piholeAdListUpdater.log 2>>&1"

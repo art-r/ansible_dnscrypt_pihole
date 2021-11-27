@@ -1,9 +1,6 @@
 ansible_connection: ssh
 ansible_ssh_user: pi
 
-user_pihole: "pi"
-group_pihole: "pi"
-
 fspath_pihole: "/opt/pihole"
 fspath_pihole_config: "/etc/pihole"
 
