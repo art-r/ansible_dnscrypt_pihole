@@ -183,6 +183,8 @@
   become: True
   ansible.builtin.cron:
     name: "Update pihole"
+    minute: "0"
+    hour: "0"
     day: "*/7"
     job: "/usr/local/bin/pihole -up >>/home/{{ ansible_ssh_user }}/piholeUpdate.log 2>>&1"
 
@@ -208,6 +210,8 @@
   become: True
   ansible.builtin.cron:
     name: "Update pihole whitelists"
+    minute: "0"
+    hour: "0"
     day: "*/7"
     job: "python3 /opt/whitelist/scripts/whitelist.py >/dev/null 2>&1"
 
@@ -240,5 +244,7 @@
   become: true
   ansible.builtin.cron:
     name: "Update pihole adblocklist updater"
+    minute: "0"
+    hour: "0"
     day: "*/7"
     job: "/usr/local/sbin/pihole-updatelists --update >> /home/{{ ansible_ssh_user }}/piholeAdListUpdater.log 2>>&1"
