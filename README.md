@@ -1,6 +1,8 @@
 # Ansible Playbook for installing PiHole with dnscrypt-proxy2
 An automated pihole installation with dnscrypt-proxy2 as a dns upstream resolver using ansible
 
+> See progress & status of this project [in the projects kanban board](https://github.com/art-r/ansible_dnscrypt_pihole/projects/1)
+
 ## Features:
 Automated installation of:
 - [Pi-hole](https://github.com/pi-hole/pi-hole)
