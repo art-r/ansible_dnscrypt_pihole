@@ -3,6 +3,8 @@ An automated pihole installation with dnscrypt-proxy2 as a dns upstream resolver
 
 > See progress & status of this project [in the projects kanban board](https://github.com/art-r/ansible_dnscrypt_pihole/projects/1)
 
+***
+
 ## Features:
 Automated installation:
 - [Pi-hole](https://github.com/pi-hole/pi-hole)
